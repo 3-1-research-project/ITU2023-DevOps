@@ -72,7 +72,7 @@ public class SimulatorController {
     }
 
     @RequestMapping(
-            value = "sim/msgs",
+            value = "sim/msg",
             method = RequestMethod.GET,
             produces = "application/json")
     public ResponseEntity<Object> messages(HttpServletRequest request, @RequestParam(value = "no", defaultValue = "100", required = false) int noMsgs,
@@ -96,7 +96,7 @@ public class SimulatorController {
         }
     }
 
-    @RequestMapping(value = "sim/msgs/{username}",
+    @RequestMapping(value = "sim/msg/{username}",
             method = RequestMethod.GET,
             produces = "application/json")
     public ResponseEntity<Object> messagesPerUserGet(HttpServletRequest request,
@@ -124,7 +124,7 @@ public class SimulatorController {
         return ResponseEntity.ok(messages);
     }
 
-    @RequestMapping(value = "sim/msgs/{username}",
+    @RequestMapping(value = "sim/msg/{username}",
             method = RequestMethod.POST,
             produces = "application/json")
     public ResponseEntity<Object> messagesPerUserPost(HttpServletRequest request,

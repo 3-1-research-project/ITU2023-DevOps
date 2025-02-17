@@ -19,7 +19,7 @@ create table message (
   message_id int AUTO_INCREMENT,
   author_id int not null,
   text varchar(255) not null,
-  pub_date int,
+  pub_date TIMESTAMP,
   flagged int,
   PRIMARY KEY (message_id)
 );

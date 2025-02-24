@@ -27,7 +27,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.ui.Model;
 
-import dk.itu.minitwit.database.SQLite;
+import dk.itu.minitwit.database.PostgreSQL;
 import dk.itu.minitwit.domain.AddMessage;
 import dk.itu.minitwit.domain.Login;
 import dk.itu.minitwit.domain.Register;
@@ -42,7 +42,7 @@ public class MiniTwitControllerTests {
     HttpServletRequest request;
     Model model;
     HttpSession session;
-    SQLite sqLiteMock;
+    PostgreSQL postgresSQLMock;
     Login login;
     Register register;
 
@@ -53,9 +53,9 @@ public class MiniTwitControllerTests {
         login = mock(Login.class);
         model = mock(Model.class);
         session = mock(HttpSession.class);
-        sqLiteMock = mock(SQLite.class);
+        postgresSQLMock = mock(PostgreSQL.class);
         register = mock(Register.class);
-        miniTwitController.sqLite = sqLiteMock;
+        miniTwitController.postgreSQL = postgresSQLMock;
     }
 
     // @Test
@@ -65,10 +65,10 @@ public class MiniTwitControllerTests {
     
     //     String username = "testUser";
     
-    //     // Add mock response for sqLiteMock.queryDb
+    //     // Add mock response for postgresSQLMock.queryDb
     //     Map<String, Object> userMap = new HashMap<>();
     //     userMap.put("user_id", 2);
-    //     when(sqLiteMock.queryDb(anyString(), anyList())).thenReturn(List.of(userMap));
+    //     when(postgresSQLMock.queryDb(anyString(), anyList())).thenReturn(List.of(userMap));
     
     //     // Act
     //     String result = miniTwitController.followUser(username, request, model);
@@ -86,7 +86,7 @@ public class MiniTwitControllerTests {
         when(model.getAttribute("requestID")).thenReturn(UUID.randomUUID().toString());
     
         String username = "testUserNotFound";
-        when(sqLiteMock.queryDb(anyString(), anyList())).thenThrow(SQLException.class);
+        when(postgresSQLMock.queryDb(anyString(), anyList())).thenThrow(SQLException.class);
     
         // Act
         String result = miniTwitController.followUser(username, request, model);
@@ -105,16 +105,16 @@ public class MiniTwitControllerTests {
         String username = "testUser";
         Map<String, Object> userMap = new HashMap<>();
         userMap.put("user_id", 2);
-        when(sqLiteMock.queryDb(anyString(), anyList())).thenReturn(List.of(userMap));
+        when(postgresSQLMock.queryDb(anyString(), anyList())).thenReturn(List.of(userMap));
 
-        when(sqLiteMock.updateDb(anyString(), anyList())).thenReturn(1);
+        when(postgresSQLMock.updateDb(anyString(), anyList())).thenReturn(1);
 
         // Act
         String result = miniTwitController.followUser(username, request, model);
 
         // Assert
         assertEquals("redirect:/" + username, result);
-        verify(sqLiteMock, times(1)).updateDb(anyString(), anyList());
+        verify(postgresSQLMock, times(1)).updateDb(anyString(), anyList());
     }
     
     
@@ -127,16 +127,16 @@ public class MiniTwitControllerTests {
     
         Map<String, Object> userMap = new HashMap<>();
         userMap.put("user_id", 2);
-        when(sqLiteMock.queryDb(anyString(), anyList())).thenReturn(List.of(userMap));
+        when(postgresSQLMock.queryDb(anyString(), anyList())).thenReturn(List.of(userMap));
     
-        when(sqLiteMock.updateDb(anyString(), anyList())).thenReturn(1);
+        when(postgresSQLMock.updateDb(anyString(), anyList())).thenReturn(1);
     
         // Act
         String template = miniTwitController.unfollowUser("testUser", request, model);
     
         // Assert
         assertEquals("redirect:/testUser", template);
-        verify(sqLiteMock, times(1)).updateDb(anyString(), anyList());
+        verify(postgresSQLMock, times(1)).updateDb(anyString(), anyList());
     }
     
     
@@ -168,14 +168,14 @@ public class MiniTwitControllerTests {
         AddMessage text = new AddMessage(null);
         text.setText("Test message");
 
-        when(sqLiteMock.updateDb(anyString(), anyList())).thenReturn(1);
+        when(postgresSQLMock.updateDb(anyString(), anyList())).thenReturn(1);
 
         // Act
         String template = miniTwitController.addMessage(text, request, model);
 
         // Assert
         assertEquals("redirect:/public", template);
-        verify(sqLiteMock, times(1)).updateDb(anyString(), anyList());
+        verify(postgresSQLMock, times(1)).updateDb(anyString(), anyList());
     }
 
     @Test
@@ -197,7 +197,7 @@ public class MiniTwitControllerTests {
         when(session.getAttribute("user_id")).thenReturn(1);
         when(model.getAttribute("requestID")).thenReturn(UUID.randomUUID().toString());
 
-        miniTwitController.sqLite = sqLiteMock;
+        miniTwitController.postgreSQL = postgresSQLMock;
 
         // Act
         String template = miniTwitController.addMessageToFavourites("1", request, model);
@@ -215,9 +215,9 @@ public class MiniTwitControllerTests {
         when(login.getUsername()).thenReturn("nonExistentUser");
         when(login.getPassword()).thenReturn("password");
 
-        SQLite sqLiteMock = mock(SQLite.class);
-        when(sqLiteMock.queryDb(anyString(), anyList())).thenReturn(Collections.emptyList());
-        miniTwitController.sqLite = sqLiteMock;
+        PostgreSQL postgresSQLMock = mock(PostgreSQL.class);
+        when(postgresSQLMock.queryDb(anyString(), anyList())).thenReturn(Collections.emptyList());
+        miniTwitController.postgreSQL = postgresSQLMock;
 
         // Act
         String template = miniTwitController.login(login, model, request);
@@ -240,9 +240,9 @@ public class MiniTwitControllerTests {
         userRow.put("username", "testUser");
         userRow.put("pw_hash", new BCryptPasswordEncoder().encode("password"));
 
-        SQLite sqLiteMock = mock(SQLite.class);
-        when(sqLiteMock.queryDb(anyString(), anyList())).thenReturn(Collections.singletonList(userRow));
-        miniTwitController.sqLite = sqLiteMock;
+        PostgreSQL postgresSQLMock = mock(PostgreSQL.class);
+        when(postgresSQLMock.queryDb(anyString(), anyList())).thenReturn(Collections.singletonList(userRow));
+        miniTwitController.postgreSQL = postgresSQLMock;
 
         miniTwitController.passwordEncoder = new BCryptPasswordEncoder();
 
@@ -267,9 +267,9 @@ public class MiniTwitControllerTests {
         userRow.put("username", "testUser");
         userRow.put("pw_hash", new BCryptPasswordEncoder().encode("password"));
 
-        SQLite sqLiteMock = mock(SQLite.class);
-        when(sqLiteMock.queryDb(anyString(), anyList())).thenReturn(Collections.singletonList(userRow));
-        miniTwitController.sqLite = sqLiteMock;
+        PostgreSQL postgresSQLMock = mock(PostgreSQL.class);
+        when(postgresSQLMock.queryDb(anyString(), anyList())).thenReturn(Collections.singletonList(userRow));
+        miniTwitController.postgreSQL = postgresSQLMock;
 
         miniTwitController.passwordEncoder = new BCryptPasswordEncoder();
 
@@ -305,8 +305,8 @@ public class MiniTwitControllerTests {
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
         miniTwitController.passwordEncoder = passwordEncoder;
 
-        SQLite sqLiteMock = mock(SQLite.class);
-        miniTwitController.sqLite = sqLiteMock;
+        PostgreSQL postgresSQLMock = mock(PostgreSQL.class);
+        miniTwitController.postgreSQL = postgresSQLMock;
 
         // Act
         String template = miniTwitController.register(register, model, request);
@@ -424,10 +424,10 @@ public class MiniTwitControllerTests {
         userData.put("user_id", expectedUserId);
         userIDs.add(userData);
 
-        SQLite sqLiteMock = mock(SQLite.class);
-        when(sqLiteMock.queryDb(anyString(), anyList())).thenReturn(userIDs);
+        PostgreSQL postgresSQLMock = mock(PostgreSQL.class);
+        when(postgresSQLMock.queryDb(anyString(), anyList())).thenReturn(userIDs);
 
-        miniTwitController.sqLite = sqLiteMock;
+        miniTwitController.postgreSQL = postgresSQLMock;
 
         // Act
         int actualUserId = miniTwitController.getUserID(username);

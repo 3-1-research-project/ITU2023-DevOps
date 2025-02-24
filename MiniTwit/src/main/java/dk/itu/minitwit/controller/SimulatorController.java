@@ -1,6 +1,6 @@
 package dk.itu.minitwit.controller;
 
-import dk.itu.minitwit.database.SQLite;
+import dk.itu.minitwit.database.PostgreSQL;
 import dk.itu.minitwit.domain.Register;
 import dk.itu.minitwit.domain.SimData;
 import dk.itu.minitwit.domain.SimMessage;
@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 public class SimulatorController {
 
     @Autowired
-    SQLite sqLite;
+    PostgreSQL postgresSQL;
 
     private int LATEST = 0;
 
@@ -33,7 +33,7 @@ public class SimulatorController {
         String fromSimulator = request.getHeader("Authorization");
         if (!"Basic c2ltdWxhdG9yOnN1cGVyX3NhZmUh".equals(fromSimulator)) {
             String error = "You are not authorized to use this resource!";
-            return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
+            return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
         }
         return null;
     }
@@ -59,11 +59,11 @@ public class SimulatorController {
             return ResponseEntity.badRequest().body("{\"status\":400, \"error_msg\":\"You have to enter a valid email address\"}");
         } else if (register.getPwd() == null) {
             return ResponseEntity.badRequest().body("{\"status\":400, \"error_msg\":\"You have to enter a password\"}");
-        } else if (sqLite.getUserId(register.getUsername()) != -1) {
+        } else if (postgresSQL.getUserId(register.getUsername()) != -1) {
             return ResponseEntity.badRequest().body("{\"status\":400, \"error_msg\":\"The username is already taken\"}");
         } else {
             try {
-                sqLite.register(register);
+                postgresSQL.register(register);
             } catch (SQLException e) {
                 return internalErrorResponse(e);
             }
@@ -72,7 +72,7 @@ public class SimulatorController {
     }
 
     @RequestMapping(
-            value = "sim/msg",
+            value = "sim/msgs",
             method = RequestMethod.GET,
             produces = "application/json")
     public ResponseEntity<Object> messages(HttpServletRequest request, @RequestParam(value = "no", defaultValue = "100", required = false) int noMsgs,
@@ -84,9 +84,9 @@ public class SimulatorController {
             return notFromSimResponse;
         }
 
-        try {
+        try { // make limit in sql query
             String query = "SELECT message.*, user.* FROM message, user WHERE message.flagged = 0 AND message.author_id = user.user_id ORDER BY message.pub_date DESC LIMIT ?";
-            List<SimMessage> messages = sqLite.queryDb(query, List.of(new Object[]{noMsgs}))
+            List<SimMessage> messages = postgresSQL.queryDb(query, List.of(new Object[]{noMsgs}))
                     .stream().map(msg -> {
                         return new SimMessage((String) msg.get("text"), (int) msg.get("pub_date"), (String) msg.get("username"));
                     }).collect(Collectors.toList());
@@ -108,7 +108,7 @@ public class SimulatorController {
         if (notFromSimResponse != null) {
             return notFromSimResponse;
         }
-        int userId = sqLite.getUserId(username);
+        int userId = postgresSQL.getUserId(username);
         if (userId == -1) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
@@ -118,7 +118,7 @@ public class SimulatorController {
         List<Object> args = new ArrayList<>();
         args.add(userId);
         args.add(noMsgs);
-        List<SimMessage> messages = sqLite.queryDb(query, args).stream().map(msg -> {
+        List<SimMessage> messages = postgresSQL.queryDb(query, args).stream().map(msg -> {
             return new SimMessage((String) msg.get("text"), (int) msg.get("pub_date"), (String) msg.get("username"));
         }).collect(Collectors.toList());
         return ResponseEntity.ok(messages);
@@ -137,10 +137,10 @@ public class SimulatorController {
         if (notFromSimResponse != null) {
             return notFromSimResponse;
         }
-        int userId = sqLite.getUserId(username);
-
+        int userId = postgresSQL.getUserId(username);
+        // check if user exists
         try {
-            sqLite.insertMessage(userId, data);
+            postgresSQL.insertMessage(userId, data);
         } catch (SQLException | ClassNotFoundException e) {
             return ResponseEntity.internalServerError().body(e);
         }
@@ -163,7 +163,7 @@ public class SimulatorController {
 
         int userId;
         try {
-            userId = sqLite.getUserId(username);
+            userId = postgresSQL.getUserId(username);
             if (userId == 0) {
                 return ResponseEntity.notFound().build();
             }
@@ -177,7 +177,7 @@ public class SimulatorController {
         } else if (request.getMethod().equals("POST") && data.getUnfollow() != null) {
             return unfollow(data, userId);
         }
-        return ResponseEntity.badRequest().build();
+        return ResponseEntity.badRequest().build(); // should also return bad request if both follow and unfollow are set
     }
 
     @RequestMapping(value = "sim/fllws/{username}",
@@ -195,7 +195,7 @@ public class SimulatorController {
 
         int userId;
         try {
-            userId = sqLite.getUserId(username);
+            userId = postgresSQL.getUserId(username);
             if (userId == 0) {
                 return ResponseEntity.notFound().build();
             }
@@ -211,11 +211,11 @@ public class SimulatorController {
 
     private ResponseEntity<Object> follow(SimData data, int userId) {
         try {
-            int followsUserId = sqLite.getUserId(data.getFollow());
+            int followsUserId = postgresSQL.getUserId(data.getFollow());
             if (followsUserId == 0) {
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
-            sqLite.follow(userId, followsUserId);
+            postgresSQL.follow(userId, followsUserId);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (SQLException | ClassNotFoundException e) {
             return ResponseEntity.internalServerError().body(e);
@@ -224,11 +224,11 @@ public class SimulatorController {
 
     private ResponseEntity<Object> unfollow(SimData data, int userId) {
         try {
-            int unfollowsUserId = sqLite.getUserId(data.getUnfollow());
+            int unfollowsUserId = postgresSQL.getUserId(data.getUnfollow());
             if (unfollowsUserId == 0) {
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
-            sqLite.unfollow(userId, unfollowsUserId);
+            postgresSQL.unfollow(userId, unfollowsUserId);
             return ResponseEntity.noContent().build();
         } catch (SQLException | ClassNotFoundException e) {
             return ResponseEntity.internalServerError().body(e);
@@ -241,7 +241,7 @@ public class SimulatorController {
             List<Object> args = new ArrayList<>();
             args.add(userId);
             args.add(noMsgs);
-            List<Map<String, Object>> followers = sqLite.queryDb(query, args);
+            List<Map<String, Object>> followers = postgresSQL.queryDb(query, args);
             List<String> followerNames = followers.stream().map(f -> f.get("username").toString()).collect(Collectors.toList());
             Map<String, Object> followersResponse = new HashMap<>();
             followersResponse.put("follows", followerNames);

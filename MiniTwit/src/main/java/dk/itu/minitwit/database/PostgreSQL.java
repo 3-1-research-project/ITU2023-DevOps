@@ -12,13 +12,14 @@ import java.sql.*;
 import java.util.*;
 
 @Component
-public class SQLite {
+public class PostgreSQL {
 
 
 //    private final String DATABASE_URL = "minitwit.db";
 
 
-    private final String DATABASE_URL = "mysql://db-minitwit-do-user-13625042-0.b.db.ondigitalocean.com:25060/defaultdb?ssl-mode=REQUIRED";
+    //private final String DATABASE_URL = "mysql://db-minitwit-do-user-13625042-0.b.db.ondigitalocean.com:25060/defaultdb?ssl-mode=REQUIRED";
+    private final String DATABASE_URL = "UserID=postgres;Password=1234;Host=localhost;Port=5432;Database=postgres;Pooling=true;MinPoolSize=0;MaxPoolSize=100;ConnectionLifetime=0;";
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -28,7 +29,9 @@ public class SQLite {
 
      private Connection connectDb() throws SQLException, ClassNotFoundException {
 //         Class.forName("com.mysql.cj.jdbc.Driver");
-         return DriverManager.getConnection("jdbc:" + DATABASE_URL, "doadmin", "AVNS_W7vkzWZhBrw3fUsgp71");
+        //  return DriverManager.getConnection("jdbc:" + DATABASE_URL, "doadmin", "AVNS_W7vkzWZhBrw3fUsgp71");
+         return DriverManager.getConnection(DATABASE_URL);
+         // return DriverManager.getConnection("postgres:postgres://" + DATABASE_URL);
      }
 
 

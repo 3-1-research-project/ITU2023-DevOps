@@ -1,6 +1,7 @@
 package dk.itu.minitwit.controller;
 
-import dk.itu.minitwit.database.SQLite;
+// import dk.itu.minitwit.database.SQLite;
+import dk.itu.minitwit.database.PostgreSQL;
 import dk.itu.minitwit.domain.AddMessage;
 import dk.itu.minitwit.domain.Login;
 import dk.itu.minitwit.domain.Register;
@@ -25,7 +26,8 @@ import java.util.*;
 public class MiniTwitController {
 
     @Autowired
-    protected SQLite sqLite;
+    // protected SQLite sqLite;
+    protected PostgreSQL postgreSQL;
 
     @Autowired
     PasswordEncoder passwordEncoder;
@@ -56,7 +58,7 @@ public class MiniTwitController {
             List<Map<String, Object>> messages = null;
             long before = System.currentTimeMillis();
             logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
-            messages = sqLite.queryDb(
+            messages = postgreSQL.queryDb(
                     "select message.*, " +
                             "user.* from message, " +
                             "user where message.flagged = 0 " +
@@ -96,9 +98,10 @@ public class MiniTwitController {
             long before = System.currentTimeMillis();
             logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
 
-            messages = sqLite.queryDb(
+            messages = postgreSQL.queryDb(
                     "select message.*, user.* from message, user " +
-                            "where message.flagged = 0 and message.author_id = user.user_id " +
+                            // "where message.flagged = 0 and message.author_id = user.user_id " +
+                            "where message.author_id = user.user_id " +
                             "order by message.pub_date desc limit ?", args);
 
             long after = System.currentTimeMillis();
@@ -139,7 +142,7 @@ public class MiniTwitController {
             List<Object> args = new ArrayList<>();
             args.add(getUserID((String) session.getAttribute("user")));
             args.add(PER_PAGE);
-            messages = sqLite.queryDb(
+            messages = postgreSQL.queryDb(
                     "select message.*, user.* " +
                             "from message inner join user " +
                             "on message.author_id = user.user_id " +
@@ -165,7 +168,7 @@ public class MiniTwitController {
     }
 
 
-    @GetMapping("/{username}")
+    @GetMapping("/user/{username}")
     public String userTimeLine(@PathVariable("username") String username, HttpServletRequest request, Model model) {
         logger.info("Request ID: %s -- Received %s request on path: '%s'"
                 .formatted( model.getAttribute("requestID"), request.getMethod(), request.getRequestURI()));
@@ -180,7 +183,7 @@ public class MiniTwitController {
         long before = System.currentTimeMillis();
         logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
         try {
-            users = sqLite.queryDb("select * from user where user.username = ?", arg);
+            users = postgreSQL.queryDb("select * from user where user.username = ?", arg);
         } catch (SQLException e) {
             logger.error("Request ID: %s -- Encountered error while querying database: " + e.getMessage() +
                     "\n" + Arrays.toString(e.getStackTrace()).formatted( model.getAttribute("requestID")));
@@ -221,7 +224,7 @@ public class MiniTwitController {
                 before = System.currentTimeMillis();
                 logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
                 try {
-                    followed = sqLite.queryDb("select * from follower where follower.who_id = ? and follower.whom_id = ?", args);
+                    followed = postgreSQL.queryDb("select * from follower where follower.who_id = ? and follower.whom_id = ?", args);
                 } catch (SQLException e) {
                     logger.error("Request ID: %s -- Encountered error while querying database: " + e.getMessage() +
                             "\n" + Arrays.toString(e.getStackTrace()).formatted( model.getAttribute("requestID")));
@@ -240,7 +243,7 @@ public class MiniTwitController {
         before = System.currentTimeMillis();
         logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
 
-            messages = sqLite.queryDb(
+            messages = postgreSQL.queryDb(
                     "select message.*, " +
                             "user.* from message, user " +
                             "where user.username = ? " +
@@ -266,7 +269,7 @@ public class MiniTwitController {
     }
 
 
-    @GetMapping("/{username}/follow")
+    @GetMapping("/{username}/follow") // TODO: Fix fail case to 404 Not Found
     public String followUser(@PathVariable("username") String username, HttpServletRequest request, Model model) {
         logger.info("Request ID: %s -- Received %s request on path: '%s'"
                 .formatted( model.getAttribute("requestID"), request.getMethod(), request.getRequestURI()));
@@ -298,7 +301,7 @@ public class MiniTwitController {
         long before = System.currentTimeMillis();
         logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
         try {
-            sqLite.updateDb("insert into follower (who_id, whom_id) values (?, ?)", args);
+            postgreSQL.updateDb("insert into follower (who_id, whom_id) values (?, ?)", args);
         } catch (SQLException e) {
             logger.error("Request ID: %s -- Encountered error while querying database: " + e.getMessage() + "\n" + Arrays.toString(e.getStackTrace()).formatted( model.getAttribute("requestID")));
         }
@@ -343,7 +346,7 @@ public class MiniTwitController {
         long before = System.currentTimeMillis();
         logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
         try {
-            sqLite.updateDb("delete from follower where who_id=? and whom_id=?", args);
+            postgreSQL.updateDb("delete from follower where who_id=? and whom_id=?", args);
         } catch (SQLException e) {
             logger.error("Request ID: %s -- Encountered error while querying database: " + e.getMessage() + "\n" + Arrays.toString(e.getStackTrace()).formatted( model.getAttribute("requestID")));
         }
@@ -374,7 +377,7 @@ public class MiniTwitController {
             long before = System.currentTimeMillis();
             logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
             try {
-                sqLite.updateDb("insert into message (author_id, text, pub_date, flagged) values (?, ?, ?, 0)", args);
+                postgreSQL.updateDb("insert into message (author_id, text, pub_date, flagged) values (?, ?, ?, 0)", args);
             } catch (SQLException e) {
                 logger.error("Request ID: %s -- Encountered error while querying database: " + e.getMessage() +
                         "\n" + Arrays.toString(e.getStackTrace()).formatted( model.getAttribute("requestID")));
@@ -407,7 +410,7 @@ public class MiniTwitController {
         long before = System.currentTimeMillis();
         logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
         try {
-            sqLite.updateDb("insert ignore into favourite (user_id, message_id) values (?, ?)", args);
+            postgreSQL.updateDb("insert ignore into favourite (user_id, message_id) values (?, ?)", args);
         } catch (SQLException e) {
             logger.error("Request ID: %s -- Encountered error while querying database: " + e.getMessage() +
                     "\n" + Arrays.toString(e.getStackTrace()).formatted( model.getAttribute("requestID")));
@@ -439,7 +442,7 @@ public class MiniTwitController {
         long before = System.currentTimeMillis();
         logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
         try {
-            sqLite.updateDb("delete from favourite where favourite.user_id = ? and favourite.message_id = ?", args);
+            postgreSQL.updateDb("delete from favourite where favourite.user_id = ? and favourite.message_id = ?", args);
         } catch (SQLException e) {
             logger.error("Request ID: %s -- Encountered error while querying database: " + e.getMessage() +
                     "\n" + Arrays.toString(e.getStackTrace()).formatted( model.getAttribute("requestID")));
@@ -468,7 +471,7 @@ public class MiniTwitController {
             long before = System.currentTimeMillis();
             logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
             try {
-                s = sqLite.queryDb("select * from user where username = ?", args);
+                s = postgreSQL.queryDb("select * from user where username = ?", args);
             } catch (SQLException e) {
                 logger.error("Request ID: %s -- Encountered error while querying database: " + e.getMessage() +
                         "\n" + Arrays.toString(e.getStackTrace()).formatted( model.getAttribute("requestID")));
@@ -476,7 +479,7 @@ public class MiniTwitController {
             long after = System.currentTimeMillis();
             logger.info("Request ID: %s -- Queried database in %.2f seconds"
                     .formatted( model.getAttribute("requestID"), getDuration(before, after)));
-            if (s.isEmpty()) {
+            if (s.isEmpty()) { // Wrong credentials, return 404
                 logger.info("Request ID: %s -- User not logged in, invalid username");
                 model.addAttribute("error", "Invalid username");
                 return "login.html";
@@ -484,7 +487,7 @@ public class MiniTwitController {
                 logger.info("Request ID: %s -- User not logged in, invalid password ");
                 model.addAttribute("error", "Invalid password");
                 return "login.html";
-            } else {
+            } else { // change redirects to my timeline
                 // Session
                 logger.info("Request ID: %s -- User logged in, redirecting to '/public'");
                 request.getSession().setAttribute("user", login.getUsername());
@@ -532,7 +535,7 @@ public class MiniTwitController {
                 long before = System.currentTimeMillis();
                 logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
                 try {
-                    sqLite.updateDb("insert into user (username, email, pw_hash) values (?, ?, ?)", args);
+                    postgreSQL.updateDb("insert into user (username, email, pw_hash) values (?, ?, ?)", args);
                 } catch (SQLException e) {
                     logger.error("Request ID: %s -- Encountered error while querying database: " + e.getMessage() +
                             "\n" + Arrays.toString(e.getStackTrace()).formatted( model.getAttribute("requestID")));
@@ -573,7 +576,7 @@ public class MiniTwitController {
         List<Object> args = new ArrayList<>();
         args.add(username);
         List<Map<String, Object>> userIDs;
-        userIDs = sqLite.queryDb("select user_id from user where username = ?", args);
+        userIDs = postgreSQL.queryDb("select user_id from user where username = ?", args);
         return ((int) userIDs.get(0).get("user_id"));
     }
 

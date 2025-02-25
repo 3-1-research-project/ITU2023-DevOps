@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -59,12 +60,12 @@ public class MiniTwitController {
             long before = System.currentTimeMillis();
             logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
             messages = postgreSQL.queryDb(
-                    "select message.*, " +
-                            "user.* from message, " +
-                            "user where message.flagged = 0 " +
-                            "and message.author_id = user.user_id " +
-                            "and (user.user_id = ? or user.user_id in (select whom_id from follower where who_id = ?))" +
-                            "order by message.pub_date desc limit ?"
+                    "select messages.*, " +
+                            "users.* from messages, " +
+                            "users where messages.flagged = 0 " +
+                            "and messages.author_id = users.user_id " +
+                            "and (users.user_id = ? or users.user_id in (select whom_id from followers where who_id = ?))" +
+                            "order by messages.pub_date desc limit ?"
                     , args);
 
             long after = System.currentTimeMillis();
@@ -99,10 +100,10 @@ public class MiniTwitController {
             logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
 
             messages = postgreSQL.queryDb(
-                    "select message.*, user.* from message, user " +
+                    "select messages.*, users.* from messages, users " +
                             // "where message.flagged = 0 and message.author_id = user.user_id " +
-                            "where message.author_id = user.user_id " +
-                            "order by message.pub_date desc limit ?", args);
+                            "where messages.author_id = users.user_id " +
+                            "order by messages.pub_date desc limit ?", args);
 
             long after = System.currentTimeMillis();
             logger.info("Request ID: %s -- Queried database in %.2f seconds"
@@ -143,12 +144,12 @@ public class MiniTwitController {
             args.add(getUserID((String) session.getAttribute("user")));
             args.add(PER_PAGE);
             messages = postgreSQL.queryDb(
-                    "select message.*, user.* " +
-                            "from message inner join user " +
-                            "on message.author_id = user.user_id " +
-                            "inner join favourite on message.message_id = favourite.message_id " +
+                    "select messages.*, users.* " +
+                            "from messages inner join users " +
+                            "on messages.author_id = users.user_id " +
+                            "inner join favourite on messages.message_id = favourite.message_id " +
                             "where favourite.user_id = ? " +
-                            "order by message.pub_date desc limit ?"
+                            "order by messages.pub_date desc limit ?"
                     , args);
 
         long after = System.currentTimeMillis();
@@ -183,7 +184,7 @@ public class MiniTwitController {
         long before = System.currentTimeMillis();
         logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
         try {
-            users = postgreSQL.queryDb("select * from user where user.username = ?", arg);
+            users = postgreSQL.queryDb("select * from users where users.username = ?", arg);
         } catch (SQLException e) {
             logger.error("Request ID: %s -- Encountered error while querying database: " + e.getMessage() +
                     "\n" + Arrays.toString(e.getStackTrace()).formatted( model.getAttribute("requestID")));
@@ -224,7 +225,7 @@ public class MiniTwitController {
                 before = System.currentTimeMillis();
                 logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
                 try {
-                    followed = postgreSQL.queryDb("select * from follower where follower.who_id = ? and follower.whom_id = ?", args);
+                    followed = postgreSQL.queryDb("select * from followers where followers.who_id = ? and followers.whom_id = ?", args);
                 } catch (SQLException e) {
                     logger.error("Request ID: %s -- Encountered error while querying database: " + e.getMessage() +
                             "\n" + Arrays.toString(e.getStackTrace()).formatted( model.getAttribute("requestID")));
@@ -244,12 +245,12 @@ public class MiniTwitController {
         logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
 
             messages = postgreSQL.queryDb(
-                    "select message.*, " +
-                            "user.* from message, user " +
-                            "where user.username = ? " +
-                            "and message.flagged = 0 " +
-                            "and message.author_id = user.user_id " +
-                            "order by message.pub_date desc limit ?"
+                    "select messages.*, " +
+                            "users.* from messages, users " +
+                            "where users.username = ? " +
+                            "and messages.flagged = 0 " +
+                            "and messages.author_id = users.user_id " +
+                            "order by messages.pub_date desc limit ?"
                     , args);
 
         after = System.currentTimeMillis();
@@ -301,7 +302,7 @@ public class MiniTwitController {
         long before = System.currentTimeMillis();
         logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
         try {
-            postgreSQL.updateDb("insert into follower (who_id, whom_id) values (?, ?)", args);
+            postgreSQL.updateDb("insert into followers (who_id, whom_id) values (?, ?)", args);
         } catch (SQLException e) {
             logger.error("Request ID: %s -- Encountered error while querying database: " + e.getMessage() + "\n" + Arrays.toString(e.getStackTrace()).formatted( model.getAttribute("requestID")));
         }
@@ -346,7 +347,7 @@ public class MiniTwitController {
         long before = System.currentTimeMillis();
         logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
         try {
-            postgreSQL.updateDb("delete from follower where who_id=? and whom_id=?", args);
+            postgreSQL.updateDb("delete from followers where who_id=? and whom_id=?", args);
         } catch (SQLException e) {
             logger.error("Request ID: %s -- Encountered error while querying database: " + e.getMessage() + "\n" + Arrays.toString(e.getStackTrace()).formatted( model.getAttribute("requestID")));
         }
@@ -373,11 +374,11 @@ public class MiniTwitController {
             List<Object> args = new ArrayList<>();
             args.add(session.getAttribute("user_id"));
             args.add(text.getText());
-            args.add(System.currentTimeMillis() / 1000);
+            args.add(new Timestamp(System.currentTimeMillis()));
             long before = System.currentTimeMillis();
             logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
             try {
-                postgreSQL.updateDb("insert into message (author_id, text, pub_date, flagged) values (?, ?, ?, 0)", args);
+                postgreSQL.updateDb("insert into messages (author_id, text, pub_date, flagged) values (?, ?, ?, 0)", args);
             } catch (SQLException e) {
                 logger.error("Request ID: %s -- Encountered error while querying database: " + e.getMessage() +
                         "\n" + Arrays.toString(e.getStackTrace()).formatted( model.getAttribute("requestID")));
@@ -471,7 +472,7 @@ public class MiniTwitController {
             long before = System.currentTimeMillis();
             logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
             try {
-                s = postgreSQL.queryDb("select * from user where username = ?", args);
+                s = postgreSQL.queryDb("select * from users where username = ?", args);
             } catch (SQLException e) {
                 logger.error("Request ID: %s -- Encountered error while querying database: " + e.getMessage() +
                         "\n" + Arrays.toString(e.getStackTrace()).formatted( model.getAttribute("requestID")));
@@ -535,7 +536,7 @@ public class MiniTwitController {
                 long before = System.currentTimeMillis();
                 logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
                 try {
-                    postgreSQL.updateDb("insert into user (username, email, pw_hash) values (?, ?, ?)", args);
+                    postgreSQL.updateDb("insert into users (username, email, pw_hash) values (?, ?, ?)", args);
                 } catch (SQLException e) {
                     logger.error("Request ID: %s -- Encountered error while querying database: " + e.getMessage() +
                             "\n" + Arrays.toString(e.getStackTrace()).formatted( model.getAttribute("requestID")));
@@ -576,7 +577,7 @@ public class MiniTwitController {
         List<Object> args = new ArrayList<>();
         args.add(username);
         List<Map<String, Object>> userIDs;
-        userIDs = postgreSQL.queryDb("select user_id from user where username = ?", args);
+        userIDs = postgreSQL.queryDb("select user_id from users where username = ?", args);
         return ((int) userIDs.get(0).get("user_id"));
     }
 
@@ -593,7 +594,8 @@ public class MiniTwitController {
     public void addDatesAndGravatarURLs(List<Map<String, Object>> messages) {
         messages.forEach(obj -> {
             String email = (String) obj.get("email");
-            Long created = ((Number) obj.get("pub_date")).longValue();
+            Timestamp timestamp = (Timestamp) obj.get("pub_date");
+            Long created = timestamp.getTime();
             obj.put("gravatar_url", "https://www.gravatar.com/avatar/" + getMD5Hash(email.toLowerCase().strip()) + "?d=identicon&s=80");
             Date d = new Date((created) * 1000);
             obj.put("date_time", sdf.format(d));

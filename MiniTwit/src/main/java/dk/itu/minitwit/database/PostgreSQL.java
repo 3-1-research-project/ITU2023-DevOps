@@ -19,18 +19,29 @@ public class PostgreSQL {
 
 
     //private final String DATABASE_URL = "mysql://db-minitwit-do-user-13625042-0.b.db.ondigitalocean.com:25060/defaultdb?ssl-mode=REQUIRED";
-    private final String DATABASE_URL = "UserID=postgres;Password=1234;Host=localhost;Port=5432;Database=postgres;Pooling=true;MinPoolSize=0;MaxPoolSize=100;ConnectionLifetime=0;";
+    //private final String DATABASE_URL = "UserID=postgres;Password=1234;Host=localhost;Port=5432;Database=postgres;Pooling=true;MinPoolSize=0;MaxPoolSize=100;ConnectionLifetime=0;";
+    private final String DATABASE_URL = "jdbc:postgresql://postgres:5432/postgres"; //host.docker.internal
+    // private final String DATABASE_URL = "jdbc:postgresql://postgres:1234@postgres:5432/postgres";
+    private final String user = "postgres";
+    private final String password = "1234";
 
+    
     @Autowired
     private PasswordEncoder passwordEncoder;
-
+    
     Logger logger = LoggerFactory.getLogger(MiniTwitController.class);
+    
+    
+    private Connection connectDb() throws SQLException, ClassNotFoundException {
+         Properties props = new Properties();
+         props.setProperty("user", user);
+         props.setProperty("password", password);
+        //  props.setProperty("ssl", "false");
+         
 
-
-     private Connection connectDb() throws SQLException, ClassNotFoundException {
 //         Class.forName("com.mysql.cj.jdbc.Driver");
         //  return DriverManager.getConnection("jdbc:" + DATABASE_URL, "doadmin", "AVNS_W7vkzWZhBrw3fUsgp71");
-         return DriverManager.getConnection(DATABASE_URL);
+         return DriverManager.getConnection(DATABASE_URL, props); //, user, password
          // return DriverManager.getConnection("postgres:postgres://" + DATABASE_URL);
      }
 
@@ -104,7 +115,7 @@ public class PostgreSQL {
 
 
     public void insertMessage(int userId, SimData data) throws SQLException, ClassNotFoundException {
-        String query = "INSERT INTO message (author_id, text, pub_date, flagged) VALUES (?, ?, ?, 0)";
+        String query = "INSERT INTO messages (author_id, text, pub_date, flagged) VALUES (?, ?, ?, 0)";
         try (Connection conn = connectDb();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, userId);
@@ -115,7 +126,7 @@ public class PostgreSQL {
     }
 
     public void register(Register register) throws SQLException {
-        String query = "insert into user (username, email, pw_hash) values (?, ?, ?)";
+        String query = "insert into users (username, email, pw_hash) values (?, ?, ?)";
         try (Connection conn = connectDb();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, register.getUsername());
@@ -128,7 +139,7 @@ public class PostgreSQL {
     }
 
     public void unfollow(int userId, int unfollowsUserId) throws SQLException, ClassNotFoundException {
-        String query = "DELETE FROM follower WHERE who_id=? AND whom_id=?";
+        String query = "DELETE FROM followers WHERE who_id=? AND whom_id=?";
         try (Connection conn = connectDb();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, userId);
@@ -139,7 +150,7 @@ public class PostgreSQL {
     }
 
     public int follow(int userId, int followUserId) throws SQLException {
-        String query = "INSERT INTO follower (who_id, whom_id) VALUES (?, ?)";
+        String query = "INSERT INTO followers (who_id, whom_id) VALUES (?, ?)";
         try (Connection conn = connectDb();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, userId);
@@ -153,7 +164,7 @@ public class PostgreSQL {
 
     public int getUserId(String username) throws SQLException, ClassNotFoundException {
         int userId = -1;
-        List<Map<String, Object>> results = queryDb("select user_id from user where username = ?", List.of(username));
+        List<Map<String, Object>> results = queryDb("select user_id from users where username = ?", List.of(username));
         if (!results.isEmpty()) {
             userId = (int) results.get(0).getOrDefault("user_id", -1);
         }

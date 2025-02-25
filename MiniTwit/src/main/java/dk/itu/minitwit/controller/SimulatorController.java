@@ -85,7 +85,7 @@ public class SimulatorController {
         }
 
         try { // make limit in sql query
-            String query = "SELECT message.*, user.* FROM message, user WHERE message.flagged = 0 AND message.author_id = user.user_id ORDER BY message.pub_date DESC LIMIT ?";
+            String query = "SELECT messages.*, users.* FROM messages, users WHERE messages.flagged = 0 AND messages.author_id = users.user_id ORDER BY messages.pub_date DESC LIMIT ?";
             List<SimMessage> messages = postgresSQL.queryDb(query, List.of(new Object[]{noMsgs}))
                     .stream().map(msg -> {
                         return new SimMessage((String) msg.get("text"), (int) msg.get("pub_date"), (String) msg.get("username"));
@@ -112,9 +112,9 @@ public class SimulatorController {
         if (userId == -1) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-        String query = "SELECT message.*, user.* FROM message, user "
-                + "WHERE message.flagged = 0 AND user.user_id = message.author_id AND user.user_id = ? "
-                + "ORDER BY message.pub_date DESC LIMIT ?";
+        String query = "SELECT messages.*, users.* FROM messages, users "
+                + "WHERE messages.flagged = 0 AND users.user_id = messages.author_id AND users.user_id = ? "
+                + "ORDER BY messages.pub_date DESC LIMIT ?";
         List<Object> args = new ArrayList<>();
         args.add(userId);
         args.add(noMsgs);
@@ -237,7 +237,7 @@ public class SimulatorController {
 
     private ResponseEntity<Object> follows(int noMsgs, int userId) {
         try {
-            String query = "SELECT user.username FROM user INNER JOIN follower ON follower.whom_id=user.user_id WHERE follower.who_id=? LIMIT ?";
+            String query = "SELECT users.username FROM users INNER JOIN followers ON followers.whom_id=users.user_id WHERE followers.who_id=? LIMIT ?";
             List<Object> args = new ArrayList<>();
             args.add(userId);
             args.add(noMsgs);

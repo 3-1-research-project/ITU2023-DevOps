@@ -11,7 +11,7 @@
             <h1>MiniTwit</h1>
             <div class="navigation">
                     <div th:if="${user != 'false'}">
-                        <a th:href="@{/{user}(user=${user})}">my timeline</a> |
+                        <a th:href="@{/user/{user}(user=${user})}">my timeline</a> |
                         <a th:href="@{/public}">public timeline</a> |
                         <a th:href="@{/favourites}">my favourites</a> |
                         <a th:href="@{/logout}">sign out [<span th:text="${user}">Username</span>]</a>
@@ -31,7 +31,7 @@
                         <img th:src="${message.gravatar_url}" width="40" height="40"/>
                         <p>
                             <strong>
-                                <a th:href="@{/{username}(username=${message.username})}"
+                                <a th:href="@{/user/{username}(username=${message.username})}"
                                     th:text="${message.username}">
                                 </a>
                             </strong>

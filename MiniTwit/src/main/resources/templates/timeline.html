@@ -16,7 +16,7 @@
             <div th:if="${user != 'false'}">
               <a th:href="@{/}">my timeline</a> |
               <a th:href="@{/public}">public timeline</a> |
-              <a th:href="@{/favourites}">my favourites</a> |
+              <!-- <a th:href="@{/favourites}">my favourites</a> | -->
               <a th:href="@{/logout}">sign out [<span th:text="${user}">Username</span>]</a>
             </div>
             <div th:if="${user == 'false'}">
@@ -36,7 +36,14 @@
     <!--    </ul>-->
     <!--  </div>-->
     <div class="body">
-        <div th:if="${public == 'true' && user != 'false'}" class="twitbox">
+        <ul class="flashes" th:if="${flashMessage}">
+            <li th:text="${flashMessage}"></li>
+        </ul>
+        <div th:if="${error}" class="error">
+            <strong>Error:</strong>
+            <span th:text="${error}"></span>
+        </div>
+        <div th:if="${(public == 'true' || my == 'true') && user != 'false'}" class="twitbox">
             <h3>What's on your mind <span th:text="${username}"></span>?</h3>
             <form th:action="@{/add_message}" method="post">
                 <p>
@@ -64,15 +71,15 @@
                     <img th:src="${message.gravatar_url}" width="40" height="40"/>
                     <p>
                         <strong>
-                            <a th:href="@{/{username}(username=${message.username})}"
+                            <a th:href="@{/user/{username}(username=${message.username})}"
                                th:text="${message.username}">
                             </a>
                         </strong>
                         <span th:text="${message.text}"></span>
                         <small>&mdash; <span th:text="${message.date_time}"></span></small><br>
-                        <a th:if="${user != 'false'}" class="favourite" th:href="@{/addMessageToFavourites/{messageID}(messageID=${message.message_id})}"> 
+                        <!-- <a th:if="${user != 'false'}" class="favourite" th:href="@{/addMessageToFavourites/{messageID}(messageID=${message.message_id})}"> 
                             Add to favourites
-                        </a>
+                        </a> -->
                     </p>
                 </li>
                 <li th:if="${messagesSize == 0}">

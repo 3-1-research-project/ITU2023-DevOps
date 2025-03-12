@@ -42,6 +42,7 @@ public class MiniTwitController {
 
     @GetMapping("/")
     public String timeline(Model model, HttpServletRequest request) {
+        
         try {
             logger.info("Request ID: %s -- Received %s request on path: '%s'"
                     .formatted( model.getAttribute("requestID"), request.getMethod(), request.getRequestURI()));
@@ -123,52 +124,6 @@ public class MiniTwitController {
         logger.info("Request ID: %s -- Returning template: %s".formatted( model.getAttribute("requestID"), template));
         return template;
     }
-
-    // @GetMapping("/favourites")
-    // public String favourites(HttpServletRequest request, Model model) {
-    //     try {
-    //     logger.info("Request ID: %s -- Received %s request on path: '%s'"
-    //             .formatted( model.getAttribute("requestID"), request.getMethod(), request.getRequestURI()));
-    //     HttpSession session = request.getSession(false);
-    //     model.addAttribute("public", "false");
-    //     boolean loggedIn = addUserToModel(model, session);
-
-    //     if (!loggedIn) {
-    //         logger.info("Request ID: %s -- User not logged in, redirecting to '/public'");
-    //         return "redirect:/public";
-    //     }
-
-    //     List<Map<String, Object>> messages = null;
-    //     long before = System.currentTimeMillis();
-    //     logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
-
-    //         List<Object> args = new ArrayList<>();
-    //         args.add(getUserID((String) session.getAttribute("user")));
-    //         args.add(PER_PAGE);
-    //         messages = postgreSQL.queryDb(
-    //                 "select messages.*, users.* " +
-    //                         "from messages inner join users " +
-    //                         "on messages.author_id = users.user_id " +
-    //                         "inner join favourite on messages.message_id = favourite.message_id " +
-    //                         "where favourite.user_id = ? " +
-    //                         "order by messages.pub_date desc limit ?"
-    //                 , args);
-
-    //     long after = System.currentTimeMillis();
-    //     logger.info("Request ID: %s -- Queried database in %.2f seconds"
-    //             .formatted( model.getAttribute("requestID"), getDuration(before, after)));
-    //     addDatesAndGravatarURLs(messages);
-
-    //     model.addAttribute("messages", messages);
-    //     model.addAttribute("messagesSize", messages.size());
-    //     } catch (SQLException | NullPointerException e) {
-    //         logger.error("Request ID: %s -- Encountered error while querying database: " + e.getMessage() +
-    //                 "\n" + Arrays.toString(e.getStackTrace()).formatted( model.getAttribute("requestID")));
-    //     }
-    //     String template = "favourites.html";
-    //     logger.info("Request ID: %s -- Returning template: %s".formatted( model.getAttribute("requestID"), template));
-    //     return template;
-    // }
 
 
     @GetMapping("/user/{username}")
@@ -273,7 +228,7 @@ public class MiniTwitController {
 
 
     @GetMapping("/{username}/follow")
-    public String followUser(@PathVariable("username") String username, HttpServletRequest request, Model model) {
+    public String followUser(@PathVariable("username") String username, HttpServletRequest request, Model model, RedirectAttributes redirectAttributes) {
         logger.info("Request ID: %s -- Received %s request on path: '%s'"
                 .formatted( model.getAttribute("requestID"), request.getMethod(), request.getRequestURI()));
         HttpSession session = request.getSession(false);
@@ -313,11 +268,12 @@ public class MiniTwitController {
                 .formatted( model.getAttribute("requestID"), getDuration(before, after)));
         String template = "redirect:/user/" + username;
         logger.info("Request ID: %s -- Returning template: %s".formatted( model.getAttribute("requestID"), template));
+        redirectAttributes.addFlashAttribute("flashMessage", "You are now following " + username);
         return template;
     }
 
     @GetMapping("/{username}/unfollow")
-    public String unfollowUser(@PathVariable("username") String username, HttpServletRequest request, Model model) {
+    public String unfollowUser(@PathVariable("username") String username, HttpServletRequest request, Model model, RedirectAttributes redirectAttributes) {
         logger.info("Request ID: %s -- Received %s request on path: '%s'"
                 .formatted( model.getAttribute("requestID"), request.getMethod(), request.getRequestURI()));
 
@@ -356,6 +312,7 @@ public class MiniTwitController {
         long after = System.currentTimeMillis();
         logger.info("Request ID: %s -- Queried database in %.2f seconds"
                 .formatted( model.getAttribute("requestID"), getDuration(before, after)));
+        redirectAttributes.addFlashAttribute("flashMessage", "You are no longer following " + username);
         String template = "redirect:/user/" + username;
         logger.info("Request ID: %s -- Returning template: %s".formatted( model.getAttribute("requestID"), template));
         return template;
@@ -376,7 +333,8 @@ public class MiniTwitController {
             List<Object> args = new ArrayList<>();
             args.add(session.getAttribute("user_id"));
             args.add(text.getText());
-            args.add(new Timestamp(System.currentTimeMillis()));
+            // Timestamp timestamp = new Timestamp(System.currentTimeMillis() / 1000);
+            args.add(new Timestamp(System.currentTimeMillis() / 1000));
             long before = System.currentTimeMillis();
             logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
             try {
@@ -388,6 +346,7 @@ public class MiniTwitController {
             long after = System.currentTimeMillis();
             logger.info("Request ID: %s -- Queried database in %.2f seconds"
                     .formatted( model.getAttribute("requestID"), getDuration(before, after)));
+            redirectAttributes.addFlashAttribute("flashMessage", "Your message was recorded");
         } else {
             redirectAttributes.addFlashAttribute("error", "Message cannot be empty!");
             model.addAttribute("error", "Message cannot be empty!");
@@ -399,73 +358,9 @@ public class MiniTwitController {
         return template;
     }
 
-    @GetMapping("/addMessageToFavourites/{messageID}")
-    public String addMessageToFavourites(@PathVariable("messageID") String messageID, HttpServletRequest request, Model model) {
-        logger.info("Request ID: %s -- Received %s request on path: '%s'"
-                .formatted( model.getAttribute("requestID"), request.getMethod(), request.getRequestURI()));
-
-        HttpSession session = request.getSession(false);
-        boolean loggedIn = addUserToModel(model, session);
-        if (!loggedIn) {
-            logger.info("Request ID: %s -- User not logged in, redirecting to '/login'");
-            return "redirect:/login";
-        }
-
-        List<Object> args = new ArrayList<>();
-        args.add(session.getAttribute("user_id"));
-        args.add(messageID);
-        long before = System.currentTimeMillis();
-        logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
-        try {
-            postgreSQL.updateDb("insert ignore into favourite (user_id, message_id) values (?, ?)", args);
-        } catch (SQLException e) {
-            logger.error("Request ID: %s -- Encountered error while querying database: " + e.getMessage() +
-                    "\n" + Arrays.toString(e.getStackTrace()).formatted( model.getAttribute("requestID")));
-        }
-        long after = System.currentTimeMillis();
-        logger.info("Request ID: %s -- Queried database in %.2f seconds"
-                .formatted( model.getAttribute("requestID"), getDuration(before, after)));
-
-        String template = "redirect:/public";
-        logger.info("Request ID: %s -- Returning template: %s".formatted( model.getAttribute("requestID"), template));
-        return template;
-    }
-
-    @GetMapping("/removeMessageToFavourites/{messageID}")
-    public String removeMessageToFavourites(@PathVariable("messageID") String messageID, HttpServletRequest request, Model model) {
-        logger.info("Request ID: %s -- Received %s request on path: '%s'"
-                .formatted( model.getAttribute("requestID"), request.getMethod(), request.getRequestURI()));
-        HttpSession session = request.getSession(false);
-
-        boolean loggedIn = addUserToModel(model, session);
-        if (!loggedIn) {
-            logger.info("Request ID: %s -- User not logged in, redirecting to '/login'");
-            return "redirect:/login";
-        }
-
-        List<Object> args = new ArrayList<>();
-        args.add(session.getAttribute("user_id"));
-        args.add(messageID);
-        long before = System.currentTimeMillis();
-        logger.info("Request ID: %s -- Querying database...".formatted( model.getAttribute("requestID")));
-        try {
-            postgreSQL.updateDb("delete from favourite where favourite.user_id = ? and favourite.message_id = ?", args);
-        } catch (SQLException e) {
-            logger.error("Request ID: %s -- Encountered error while querying database: " + e.getMessage() +
-                    "\n" + Arrays.toString(e.getStackTrace()).formatted( model.getAttribute("requestID")));
-        }
-        long after = System.currentTimeMillis();
-        logger.info("Request ID: %s -- Queried database in %.2f seconds"
-                .formatted( model.getAttribute("requestID"), getDuration(before, after)));
-
-        String template = "redirect:/favourites";
-        logger.info("Request ID: %s -- Returning template: %s".formatted( model.getAttribute("requestID"), template));
-        return template;
-    }
-
 
     @RequestMapping(value = "/login", method = {RequestMethod.GET, RequestMethod.POST})
-    public String login(@ModelAttribute Login login, Model model, HttpServletRequest request) {
+    public String login(@ModelAttribute Login login, Model model, HttpServletRequest request, RedirectAttributes redirectAttributes) {
         logger.info("Request ID: %s -- Received %s request on path: '%s'"
                 .formatted( model.getAttribute("requestID"), request.getMethod(), request.getRequestURI()));
 
@@ -497,11 +392,11 @@ public class MiniTwitController {
             } else { // change redirects to my timeline
                 // Session
                 logger.info("Request ID: %s -- User logged in, redirecting to '/public'");
+                
                 request.getSession().setAttribute("user", login.getUsername());
                 request.getSession().setAttribute("user_id", s.get(0).get("user_id"));
 
-                String flashMessage = "You were logged in";
-                model.addAttribute("flashMessage", flashMessage);
+                redirectAttributes.addFlashAttribute("flashMessage", "You were logged in");
                 String template = "redirect:/public";
                 logger.info("Request ID: %s -- Returning template: %s".formatted( model.getAttribute("requestID"), template));
                 return template;
@@ -518,7 +413,9 @@ public class MiniTwitController {
     public String register(@ModelAttribute Register register, Model model, HttpServletRequest request, RedirectAttributes redirectAttributes) {
         HttpSession session = request.getSession(false);
         addUserToModel(model, session);
-        if (model.getAttribute("user") != null) {
+        Object user = model.getAttribute("user");
+
+        if (model.getAttribute("user") != null && model.getAttribute("user") != "" && model.getAttribute("user") != "false") {
             logger.info("Request ID: %s -- User already logged in, redirecting to '/public'".formatted( model.getAttribute("requestID")));
             return "redirect:/";
         }
@@ -577,14 +474,16 @@ public class MiniTwitController {
     }
 
     @GetMapping("/logout")
-    public String logout(HttpServletRequest request, Model model) {
+    public String logout(HttpServletRequest request, Model model, RedirectAttributes redirectAttributes) {
         logger.info("Request ID: %s -- Received %s request on path: '%s'"
                 .formatted( model.getAttribute("requestID"), request.getMethod(), request.getRequestURI()));
                 
         request.getSession().invalidate();
+        addUserToModel(model, request.getSession(false));
         logger.info("Request ID: %s -- Session invalidated".formatted( model.getAttribute("requestID")));
         String template = "redirect:/public";
         logger.info("Request ID: %s -- Returning template: %s".formatted( model.getAttribute("requestID"), template));
+        redirectAttributes.addFlashAttribute("flashMessage", "You were logged out");
         return template;
     }
 
@@ -602,6 +501,21 @@ public class MiniTwitController {
     }
 
     public static boolean addUserToModel(Model model, HttpSession session) {
+        Object user = null;
+        try {
+
+            user = session.getAttribute("user");
+        } catch (Exception e){
+            model.addAttribute("user", "false");
+            System.out.println("User not logged in");
+            return false;
+        }
+        if (user == "" || user == null)
+        {
+            model.addAttribute("user", "false");
+            System.out.println("User not logged in");
+            return false;
+        }
         if (session != null) {
             model.addAttribute("user", session.getAttribute("user"));
             return true;

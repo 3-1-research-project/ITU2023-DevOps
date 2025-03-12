@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -18,7 +19,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
-public class SimulatorController {
+public class SimulatorController { // APIController
 
     @Autowired
     PostgreSQL postgresSQL;
@@ -39,7 +40,7 @@ public class SimulatorController {
     }
 
     @RequestMapping(
-            value = "sim/latest",
+            value = "api/latest",
             method = RequestMethod.GET,
             produces = "application/json")
     public ResponseEntity<Object> getLatest() {
@@ -47,7 +48,7 @@ public class SimulatorController {
     }
 
     @RequestMapping(
-            value = "sim/register",
+            value = "api/register",
             method = RequestMethod.POST,
             produces = "application/json")
     public ResponseEntity<Object> register(@RequestBody Register register,
@@ -72,7 +73,7 @@ public class SimulatorController {
     }
 
     @RequestMapping(
-            value = "sim/msgs",
+            value = "api/msgs",
             method = RequestMethod.GET,
             produces = "application/json")
     public ResponseEntity<Object> messages(HttpServletRequest request, @RequestParam(value = "no", defaultValue = "100", required = false) int noMsgs,
@@ -84,11 +85,11 @@ public class SimulatorController {
             return notFromSimResponse;
         }
 
-        try { // make limit in sql query
+        try {
             String query = "SELECT messages.*, users.* FROM messages, users WHERE messages.flagged = 0 AND messages.author_id = users.user_id ORDER BY messages.pub_date DESC LIMIT ?";
             List<SimMessage> messages = postgresSQL.queryDb(query, List.of(new Object[]{noMsgs}))
                     .stream().map(msg -> {
-                        return new SimMessage((String) msg.get("text"), (int) msg.get("pub_date"), (String) msg.get("username"));
+                        return new SimMessage((String) msg.get("text"), (int) ((Timestamp) msg.get("pub_date")).getTime(), (String) msg.get("username"));
                     }).collect(Collectors.toList());
             return ResponseEntity.ok(messages);
         } catch (SQLException e) {
@@ -96,7 +97,7 @@ public class SimulatorController {
         }
     }
 
-    @RequestMapping(value = "sim/msg/{username}",
+    @RequestMapping(value = "api/msgs/{username}",
             method = RequestMethod.GET,
             produces = "application/json")
     public ResponseEntity<Object> messagesPerUserGet(HttpServletRequest request,
@@ -119,12 +120,12 @@ public class SimulatorController {
         args.add(userId);
         args.add(noMsgs);
         List<SimMessage> messages = postgresSQL.queryDb(query, args).stream().map(msg -> {
-            return new SimMessage((String) msg.get("text"), (int) msg.get("pub_date"), (String) msg.get("username"));
+            return new SimMessage((String) msg.get("text"), (int) ((Timestamp) msg.get("pub_date")).getTime(), (String) msg.get("username"));
         }).collect(Collectors.toList());
         return ResponseEntity.ok(messages);
     }
 
-    @RequestMapping(value = "sim/msg/{username}",
+    @RequestMapping(value = "api/msgs/{username}",
             method = RequestMethod.POST,
             produces = "application/json")
     public ResponseEntity<Object> messagesPerUserPost(HttpServletRequest request,
@@ -147,7 +148,7 @@ public class SimulatorController {
         return ResponseEntity.noContent().build();
     }
 
-    @RequestMapping(value = "sim/fllws/{username}",
+    @RequestMapping(value = "api/fllws/{username}",
             method = RequestMethod.POST,
             produces = "application/json")
     public ResponseEntity<Object> followPost(HttpServletRequest request,
@@ -180,7 +181,7 @@ public class SimulatorController {
         return ResponseEntity.badRequest().build(); // should also return bad request if both follow and unfollow are set
     }
 
-    @RequestMapping(value = "sim/fllws/{username}",
+    @RequestMapping(value = "api/fllws/{username}",
             method = RequestMethod.GET,
             produces = "application/json")
     public ResponseEntity<Object> followGet(HttpServletRequest request,

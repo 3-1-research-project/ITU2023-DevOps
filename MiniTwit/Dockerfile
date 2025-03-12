@@ -13,5 +13,5 @@ COPY minitwit.db /app-service/minitwit.db
 WORKDIR /app-service
 
 
-EXPOSE 8080
+EXPOSE 5000
 ENTRYPOINT ["java","-jar","MiniTwit-1.0.3.war"]

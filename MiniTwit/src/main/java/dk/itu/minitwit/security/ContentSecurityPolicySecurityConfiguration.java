@@ -11,7 +11,9 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 public class ContentSecurityPolicySecurityConfiguration {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.headers()
+        http
+        .csrf().disable()
+        .headers()
         .xssProtection()
         .and()
         .contentSecurityPolicy("form-action 'self' always; default-src 'none'; script-src 'self'; style-src 'self' *.academicweapons.dk/*; font-src 'self'; connect-src 'self'; img-src 'self' *.gravatar.com; frame-src 'none'; frame-ancestors 'none'; media-src 'none'; object-src 'none'; manifest-src 'none'; worker-src 'none';");

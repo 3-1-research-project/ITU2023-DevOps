@@ -83,16 +83,6 @@ jobs:
             docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
             docker stack deploy --compose-file docker-compose.yml minitwit
 
-      # - name: deployment
-      #   uses: appleboy/ssh-action@v0.1.8
-      #   with:
-      #     host: ${{ secrets.SSH_HOST }}
-      #     username: ${{ secrets.SSH_USER }}
-      #     key: ${{ secrets.SSH_KEY }}
-      #     script: |
-      #       docker pull magmose1/minitwitimage:latest
-      #       docker stop minitwit || true && docker rm minitwit || true
-      #       docker run -d -p 8081:8080 --name minitwit magmose1/minitwitimage:latest
-      #       docker ps
+
 
       

@@ -76,5 +76,5 @@ jobs:
             python3 ${{ secrets.TESTS_PATH }}
             docker pull magmose1/minitwitimagedev:latest
             docker stop minidev || true && docker rm minidev || true
-            docker run -d -p 8082:8080 --name minidev magmose1/minitwitimagedev:latest
+            docker run -d -p 5000 --name minidev magmose1/minitwitimagedev:latest
             docker ps
